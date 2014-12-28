@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --]]
 
 _addon.name = 'setbgm'
-_addon.version = '1.1.0'
+_addon.version = '1.1.1'
 _addon.command = 'setbgm'
 _addon.author = 'Seth VanHeulen (Acacia@Odin)'
 
@@ -42,10 +42,10 @@ mtype = {
     [1]='Idle (Night)',
     [2]='Battle (Solo)',
     [3]='Battle (Party)',
-    [4]='Unknown',
+    [4]='Chocobo',
     [5]='Death',
     [6]='Mog House',
-    [7]='Unknown'
+    [7]='Fishing'
 }
 
 bgm = {
