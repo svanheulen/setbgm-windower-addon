@@ -31,13 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --]]
 
 _addon.name = 'setbgm'
-_addon.version = '1.1.1'
+_addon.version = '1.2.0'
 _addon.command = 'setbgm'
 _addon.author = 'Seth VanHeulen (Acacia@Odin)'
 
+require('chat')
 require('pack')
 
-mtype = {
+music_types = {
     [0]='Idle (Day)',
     [1]='Idle (Night)',
     [2]='Battle (Solo)',
@@ -48,7 +49,7 @@ mtype = {
     [7]='Fishing'
 }
 
-bgm = {
+songs = {
     [40]='Cloister of Time and Souls', [41]='Royal Wanderlust', [42]='Snowdrift Waltz', [43]='Troubled Shadows', [44]='Where Lords Rule Not', [45]='Summers Lost', [46]='Goddess Divine', [47]='Echoes of Creation', [48]='Main Theme', [49]='Luck of the Mog',
     [50]='Feast of the Ladies', [51]='Abyssea - Scarlet Skies, Shadowed Plains', [52]='Melodies Errant', [53]='Shinryu', [54]='Everlasting Bonds', [55]='Provenance Watcher', [56]='Where it All Begins', [57]='Steel Sings, Blades Dance', [58]='A New Direction', [59]='The Pioneers',
     [60]='Into Lands Primeval - Ulbuka', [61]="Water's Umbral Knell", [62]='Keepers of the Wild', [63]='The Sacred City of Adoulin', [64]='Breaking Ground', [65]='Hades', [66]='Arciela', [67]='Mog Resort', [68]='Worlds Away', [69]='Unknown',
@@ -72,55 +73,102 @@ bgm = {
     [900]='Distant Worlds'
 }
 
-function setbgm_command(...)
-    local arg = {...}
-    if #arg == 1 or #arg == 2 then
-        if arg[1]:lower() == 'list' then
-            if #arg == 1 or arg[2]:lower() == 'music' then
-                windower.add_to_chat(207, 'Available background music:')
-                for id=40,900,5 do
-                    local output = '  '
-                    for i=0,4 do
-                        if bgm[id+i] then
-                            output = output .. '  \31\204%d\30\1: %s':format(id+i, bgm[id+i])
-                        end
-                    end
-                    if output ~= '  ' then
-                        windower.add_to_chat(207, output)
-                    end
-                end
-                return
-            elseif arg[2]:lower() == 'type' then
-                windower.add_to_chat(207, 'Available music types:')
-                local output = '  '
-                for id=0,7 do
-                    output = output .. '  \31\204%d\30\1: %s':format(id, mtype[id])
-                end
-                windower.add_to_chat(207, output)
-                return
-            end
-        end
-        local id = tonumber(arg[1])
-        if id and bgm[id] then
-            if #arg == 1 then
-                windower.add_to_chat(207, 'Setting background music: \31\200%s\30\1':format(bgm[id]))
-                windower.packets.inject_incoming(0x05F, 'IHH':pack(0x45F, 0, id))
-                windower.packets.inject_incoming(0x05F, 'IHH':pack(0x45F, 1, id))
-                windower.packets.inject_incoming(0x05F, 'IHH':pack(0x45F, 6, id))
-                return
+expantions = {
+    'Final Fantasy XI',
+    'Rise of the Zilart',
+    'Chains of Promathia',
+    'Treasures of Aht Urgan',
+    'Wings of the Godess',
+    'Seekers of Adoulin'
+}
+
+function set_music(music_type, song)
+    if music_type then
+        local m = tonumber(music_type)
+        if music_types[m] then
+            local s = tonumber(song)
+            if songs[s] then
+                windower.add_to_chat(207, 'Setting %s music: %s':format(music_types[m], songs[s]:color(200)))
+                windower.packets.inject_incoming(0x05F, 'IHH':pack(0x45F, m, s))
             else
-                local tid = tonumber(arg[2])
-                if tid and mtype[tid] then
-                    windower.add_to_chat(207, 'Setting %s music: \31\200%s\30\1':format(mtype[tid], bgm[id]))
-                    windower.packets.inject_incoming(0x05F, 'IHH':pack(0x45F, tid, id))
-                    return
-                end
+                windower.add_to_chat(167, 'Invalid song: %s':format(song))
             end
+        else
+            windower.add_to_chat(167, 'Invalid music type: %s':format(music_type))
+        end
+    else
+        local s = tonumber(song)
+        if songs[s] then
+            windower.add_to_chat(207, 'Setting all music: %s':format(songs[s]:color(200)))
+            for music_type=0,7 do
+                windower.packets.inject_incoming(0x05F, 'IHH':pack(0x45F, music_type, s))
+            end
+        else
+            windower.add_to_chat(167, 'Invalid song: %s':format(song))
         end
     end
+end
+
+function display_songs()
+    windower.add_to_chat(207, 'Available songs:')
+    for id=40,900,5 do
+        local output = '  '
+        for i=0,4 do
+            if songs[id+i] then
+                output = output .. '  %s: %s':format(tostring(id+i):color(204), songs[id+i])
+            end
+        end
+        if output ~= '  ' then
+            windower.add_to_chat(207, output)
+        end
+    end
+end
+
+function display_music_types()
+    windower.add_to_chat(207, 'Available music types:')
+    local output = '  '
+    for music_type=0,7 do
+        output = output .. '  %s: %s':format(tostring(music_type):color(204), music_types[music_type])
+    end
+    windower.add_to_chat(207, output)
+end
+
+function display_help()
     windower.add_to_chat(167, 'Command usage:')
     windower.add_to_chat(167, '    setbgm list [music|type]')
-    windower.add_to_chat(167, '    setbgm <music id> [<type id>]')
+    windower.add_to_chat(167, '    setbgm <song id> [<music type id>]')
+    windower.add_to_chat(167, '    setbgm <song id> <song id> <song id> <song id> <song id> <song id> <song id> <song id>')
+end
+
+function setbgm_command(...)
+    local arg = {...}
+    if #arg == 1 and arg[1]:lower() == 'list' then
+        display_songs()
+        return
+    elseif #arg == 2 and arg[1]:lower() == 'list' and arg[2]:lower() == 'music' then
+        display_songs()
+        return
+    elseif #arg == 2 and arg[1]:lower() == 'list' and arg[2]:lower() == 'type' then
+        display_music_types()
+        return
+    elseif #arg == 1 then
+        set_music(nil, arg[1])
+        return
+    elseif #arg == 2 then
+        set_music(arg[2], arg[1])
+        return
+    elseif #arg == 8 then
+        set_music(0, arg[1])
+        set_music(1, arg[2])
+        set_music(2, arg[3])
+        set_music(3, arg[4])
+        set_music(4, arg[5])
+        set_music(5, arg[6])
+        set_music(6, arg[7])
+        set_music(7, arg[8])
+        return
+    end
+    display_help()
 end
 
 windower.register_event('addon command', setbgm_command)
